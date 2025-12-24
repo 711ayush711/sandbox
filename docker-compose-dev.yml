@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  sandbox:
+    container_name: sandbox-2.0
+    build: .
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    ports:
+      - "3022:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - Agentic-AI-POC-dev
+networks:
+  Agentic-AI-POC-dev:
+    external: true

@@ -5,15 +5,6 @@ import { storeContext, getContextByAction } from "../utils/redisContextManager";
 import { generateDynamicPayload } from "./utils/dynamicPayloadGenerator";
 import { getPreviousActionForContext } from "../utils/actionDependencies";
 
-/**
- * Unified webhook controller using dynamic payload generation
- * Handles all Beckn protocol actions dynamically based on domain configuration
- * 
- * Flow:
- * 1. discover request -> Forward to CDS -> CDS returns on_discover -> Store in Redis
- * 2. select request -> Get on_discover from Redis -> Generate on_select -> Store in Redis
- * 3. init request -> Get on_select from Redis -> Generate on_init -> Store in Redis
- */
 export class FlowWebhookController {
   /**
    * Handle incoming action (select, init, confirm, status, etc.)
@@ -76,25 +67,28 @@ export class FlowWebhookController {
 
       // Send dynamic payload in response for testing
       // dynamicPayload already contains { context, message } structure
-      // res.status(200).json({
-      //   context,
-      //   message: {
-      //     ack: {
-      //       status: "ACK",
-      //     },
-      //   },
-      // });
-      res.status(200).json(dynamicPayload);
+      res.status(200).json({
+        context,
+        message: {
+          ack: {
+            status: "ACK",
+          },
+        },
+      });
+      
+      //testing purpose
+      // res.status(200).json(dynamicPayload);
+      
       // Forward to Onix adapter (fire and forget)
-      // if (process.env.ONIX_ADAPTOR || process.env.BPP_ONIX_ADAPTOR) {
-      //   this.forwardResponseToOnix(responseAction, dynamicPayload, context).catch((error) => {
-      //     logger.error("Failed to forward response to Onix adapter", {
-      //       action: responseAction,
-      //       error: error.message,
-      //       transaction_id: context?.transaction_id,
-      //     });
-      //   });
-      // }
+      if (process.env.ONIX_ADAPTOR || process.env.BPP_ONIX_ADAPTOR) {
+        this.forwardResponseToOnix(responseAction, dynamicPayload, context).catch((error) => {
+          logger.error("Failed to forward response to Onix adapter", {
+            action: responseAction,
+            error: error.message,
+            transaction_id: context?.transaction_id,
+          });
+        });
+      }
     } catch (error: any) {
       logger.error("Webhook handler error", {
         action,
@@ -164,40 +158,41 @@ export class FlowWebhookController {
 
       // Step 3: Send on_discover response for testing
       // Return the full on_discover payload from CDS
-      // res.status(200).json({
-      //   context,
-      //   message: {
-      //     ack: {
-      //       status: "ACK",
-      //     },
-      //   },
-      // });
+      res.status(200).json({
+        context,
+        message: {
+          ack: {
+            status: "ACK",
+          },
+        },
+      });
 
-      res.status(200).json(onDiscoverResponse);
+      //testing purpose
+      // res.status(200).json(onDiscoverResponse);
 
       // Step 4: Forward to adapter (fire and forget)
-      // if (process.env.ONIX_ADAPTOR) {
-      //   const adapterUrl = `${process.env.ONIX_ADAPTOR}/bap/receiver/on_discover`;
-      //   logger.info("Forwarding discover response to adapter", {
-      //     url: adapterUrl,
-      //     context: context?.transaction_id,
-      //   });
+      if (process.env.ONIX_ADAPTOR) {
+        const adapterUrl = `${process.env.ONIX_ADAPTOR}/bap/receiver/on_discover`;
+        logger.info("Forwarding discover response to adapter", {
+          url: adapterUrl,
+          context: context?.transaction_id,
+        });
 
-      //   axios.post(adapterUrl, discoverResponse.data)
-      //     .then(() => {
-      //       logger.info("Discover response forwarded successfully", {
-      //         url: adapterUrl,
-      //         context: context?.transaction_id,
-      //       });
-      //     })
-      //     .catch((adapterError: any) => {
-      //       logger.error("Failed to forward discover response to adapter", {
-      //         url: adapterUrl,
-      //         context: context?.transaction_id,
-      //         error: adapterError.message,
-      //       });
-      //     });
-      // }
+        axios.post(adapterUrl, discoverResponse.data)
+          .then(() => {
+            logger.info("Discover response forwarded successfully", {
+              url: adapterUrl,
+              context: context?.transaction_id,
+            });
+          })
+          .catch((adapterError: any) => {
+            logger.error("Failed to forward discover response to adapter", {
+              url: adapterUrl,
+              context: context?.transaction_id,
+              error: adapterError.message,
+            });
+          });
+      }
     } catch (error: any) {
       logger.error("Error in discover flow", {
         context: context?.transaction_id,
